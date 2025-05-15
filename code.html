@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Glowing Penis Drawer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            background-color: #000000; /* Black background */
+            touch-action: none; /* Disable default touch actions like pinch-zoom or scroll */
+            user-select: none; /* Prevent text selection while dragging */
+        }
+        canvas {
+            display: block; /* Remove extra space below canvas */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="drawingCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let hue = 0; // For cycling colors
+
+        // Set canvas size to full window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial size set
+
+        // --- Penis Drawing Function ---
+        function drawPenis(anchorX, anchorY, baseSize, color, angle) {
+            ctx.save();
+
+            // Set color and glow for the penis
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15; // Glow intensity (can be adjusted)
+
+            // Move to the anchor point and rotate
+            ctx.translate(anchorX, anchorY);
+            ctx.rotate(angle);
+
+            // Penis dimensions (relative to baseSize)
+            // baseSize is roughly equivalent to the old lineWidth (5-15)
+            const length = baseSize * 3.5; // Make penis length proportional to baseSize
+            const shaftWidth = length * 0.25;
+            const shaftLength = length * 0.7;
+            const headDiameter = shaftWidth * 1.3; // Head slightly wider than shaft
+
+            // Draw Shaft (rounded rectangle)
+            // Drawn along the positive x-axis from the (now rotated) origin
+            ctx.beginPath();
+            // roundRect(x, y, width, height, borderRadius)
+            // shaft starts at origin, extends 'shaftLength'
+            // y is -shaftWidth/2 to center it vertically
+            ctx.roundRect(0, -shaftWidth / 2, shaftLength, shaftWidth, shaftWidth / 3);
+            ctx.fill();
+
+            // Draw Head (circle)
+            // Centered at the end of the shaft
+            ctx.beginPath();
+            ctx.arc(shaftLength, 0, headDiameter / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+
+        // --- Drawing Logic ---
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+            hue = Math.random() * 360; // Pick a new base hue for this stroke
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = getCoordinates(e);
+
+            // If mouse hasn't moved, don't draw to avoid pile-up
+            if (currentX === lastX && currentY === lastY) return;
+
+            // Calculate angle of movement
+            const dx = currentX - lastX;
+            const dy = currentY - lastY;
+            const angle = Math.atan2(dy, dx);
+
+            // Varying size for more dynamic look
+            const penisBaseSize = Math.random() * 8 + 4; // e.g., 4 to 12
+            
+            // Color
+            const color = `hsl(${hue}, 100%, 70%)`; // Brighter for more pop
+
+            // Draw the penis at the current point, oriented by movement
+            drawPenis(currentX, currentY, penisBaseSize, color, angle);
+
+            [lastX, lastY] = [currentX, currentY];
+            hue = (hue + 3) % 360; // Increment hue for rainbow effect along the streak
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            // No need to reset shadowBlur here as drawPenis sets it locally
+            // and fadeEffect doesn't use it.
+        }
+
+        // --- Event Listeners ---
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing); // Stop if mouse leaves canvas
+
+        // Touch Events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (e.touches.length > 0) { // Ensure there's a touch
+                startDrawing(e.touches[0]);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (e.touches.length > 0) { // Ensure there's a touch to track
+                draw(e.touches[0]);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // --- Helper to get coordinates ---
+        function getCoordinates(eventOrTouch) {
+            // Works for both mouse events and Touch objects (like event.touches[0])
+            // as both have clientX/clientY properties.
+            if (eventOrTouch.clientX !== undefined && eventOrTouch.clientY !== undefined) {
+                return [eventOrTouch.clientX, eventOrTouch.clientY];
+            }
+            // Fallback (should ideally not be reached if events are handled correctly)
+            return [lastX, lastY];
+        }
+
+
+        // --- Animation Loop for Fading ---
+        function fadeEffect() {
+            // Draw a semi-transparent black rectangle over the canvas
+            // This makes existing drawings fade over time
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Adjust alpha for fade speed (0.01 = slow, 0.1 = fast)
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            requestAnimationFrame(fadeEffect); // Loop
+        }
+
+        // Start the fading animation
+        fadeEffect();
+
+    </script>
+</body>
+</html>
