@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Glowing Lines Drawer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            background-color: #000000; /* Black background */
+            touch-action: none; /* Disable default touch actions like pinch-zoom or scroll */
+            user-select: none; /* Prevent text selection while dragging */
+        }
+        canvas {
+            display: block; /* Remove extra space below canvas */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="drawingCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let hue = 0; // For cycling colors
+
+        // Set canvas size to full window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial size set
+
+        // --- Drawing Logic ---
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+            hue = Math.random() * 360; // Pick a new base hue for this stroke
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = getCoordinates(e);
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = Math.random() * 10 + 5; // Varying line width for more dynamic look
+            
+            // Color and Glow
+            const color = `hsl(${hue}, 100%, 60%)`;
+            ctx.strokeStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20; // Glow intensity
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+
+            [lastX, lastY] = [currentX, currentY];
+            hue = (hue + 2) % 360; // Increment hue for rainbow effect along the stroke
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.shadowBlur = 0; // Reset shadow blur when not drawing
+        }
+
+        // --- Event Listeners ---
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing); // Stop if mouse leaves canvas
+
+        // Touch Events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            startDrawing(e.touches[0]);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (e.touches.length > 0) { // Ensure there's a touch to track
+                draw(e.touches[0]);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // --- Helper to get coordinates ---
+        function getCoordinates(e) {
+            // For mouse events, e.clientX/Y is fine
+            // For touch events, we need e.touches[0].clientX/Y
+            if (e.clientX !== undefined && e.clientY !== undefined) {
+                return [e.clientX, e.clientY];
+            } else if (e.touches && e.touches.length > 0) {
+                return [e.touches[0].clientX, e.touches[0].clientY];
+            }
+            return [lastX, lastY]; // Fallback, should not happen often
+        }
+
+
+        // --- Animation Loop for Fading ---
+        function fadeEffect() {
+            // Draw a semi-transparent black rectangle over the canvas
+            // This makes existing drawings fade over time
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Adjust alpha for fade speed (0.01 = slow, 0.1 = fast)
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            requestAnimationFrame(fadeEffect); // Loop
+        }
+
+        // Start the fading animation
+        fadeEffect();
+
+    </script>
+</body>
+</html>
